@@ -17,6 +17,7 @@
     "Gruntfile.js",
     "Moment.js.nuspec",
     "package.js",
-    "package.json"
+    "package.json",
+    "!build/umd/min/moment-with-locales.custom.js"
   ]
 }
