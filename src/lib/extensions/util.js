@@ -1,5 +1,7 @@
-//þ
+//ÅŸ
 (function (m) {
+    m.locale("tr");
+    
     m.fn.isWeekendDay = function () {
         return this.isoWeekday() > 5;
     };
