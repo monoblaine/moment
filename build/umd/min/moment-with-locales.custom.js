@@ -143,6 +143,8 @@
         return input === void 0;
     }
 
+    // Plugins that add properties should also add the key here (null value),
+    // so we can properly clone ourselves.
     var momentProperties = utils_hooks__hooks.momentProperties = [];
 
     function copyConfig(to, from) {
@@ -230,6 +232,7 @@
         return value;
     }
 
+    // compare two arrays, return the number of differences
     function compareArrays(array1, array2, dontConvert) {
         var len = Math.min(array1.length, array2.length),
             lengthDiff = Math.abs(array1.length - array2.length),
@@ -345,6 +348,7 @@
         };
     }
 
+    // internal storage for locale config files
     var locales = {};
     var globalLocale;
 
@@ -1054,6 +1058,8 @@
         return m;
     }
 
+    // iso 8601 regex
+    // 0000-00-00 0000-W00 or 0000-W00-0 + T + 00 or 00:00 or 00:00:00 or 00:00:00.000 + +00:00 or +0000 or +00)
     var extendedIsoRegex = /^\s*((?:[+-]\d{6}|\d{4})-(?:\d\d-\d\d|W\d\d-\d|W\d\d|\d\d\d|\d\d))(?:(T| )(\d\d(?::\d\d(?::\d\d(?:[.,]\d+)?)?)?)([\+\-]\d\d(?::?\d\d)?|\s*Z)?)?/;
     var basicIsoRegex = /^\s*((?:[+-]\d{6}|\d{4})(?:\d\d\d\d|W\d\d\d|W\d\d|\d\d\d|\d\d))(?:(T| )(\d\d(?:\d\d(?:\d\d(?:[.,]\d+)?)?)?)([\+\-]\d\d(?::?\d\d)?|\s*Z)?)?/;
 
@@ -1190,6 +1196,8 @@
         return date;
     }
 
+    // FORMATTING
+
     addFormatToken('Y', 0, 0, function () {
         var y = this.year();
         return y <= 9999 ? '' + y : '+' + y;
@@ -1250,6 +1258,7 @@
         return isLeapYear(this.year());
     }
 
+    // start-of-first-week - start-of-year
     function firstWeekOffset(year, dow, doy) {
         var // first-week day -- which january is always in the first week (4 for iso, 1 for other)
             fwd = 7 + dow - doy,
@@ -1450,6 +1459,7 @@
         }
     }
 
+    // constant that refers to the ISO standard
     utils_hooks__hooks.ISO_8601 = function () {};
 
     // date from string and format string
@@ -1547,6 +1557,7 @@
         }
     }
 
+    // date from string and array of format strings
     function configFromStringAndArray(config) {
         var tempConfig,
             bestMoment,
@@ -1796,6 +1807,8 @@
         return obj instanceof Duration;
     }
 
+    // FORMATTING
+
     function offset (token, separator) {
         addFormatToken(token, 0, 0, function () {
             var offset = this.utcOffset();
@@ -1998,6 +2011,7 @@
         return this.isValid() ? this._isUTC && this._offset === 0 : false;
     }
 
+    // ASP.NET json date format regex
     var aspNetRegex = /^(\-)?(?:(\d*)[. ])?(\d+)\:(\d+)(?:\:(\d+)\.?(\d{3})?\d*)?$/;
 
     // from http://docs.closure-library.googlecode.com/git/closure_goog_date_date.js.source.html
@@ -2117,6 +2131,7 @@
         }
     }
 
+    // TODO: remove 'name' arg after deprecation is removed
     function createAdder(direction, name) {
         return function (val, period) {
             var dur, tmp;
@@ -2232,11 +2247,11 @@
     }
 
     function isSameOrAfter (input, units) {
-        return this.isSame(input, units) || this.isAfter(input,units);
+        return this.isSame(input, units) || this.isAfter(input, units);
     }
 
     function isSameOrBefore (input, units) {
-        return this.isSame(input, units) || this.isBefore(input,units);
+        return this.isSame(input, units) || this.isBefore(input, units);
     }
 
     function diff (input, units, asFloat) {
@@ -2355,6 +2370,9 @@
         return this.to(local__createLocal(), withoutSuffix);
     }
 
+    // If passed a locale key, it will set the locale for this
+    // instance.  Otherwise, it will return the locale configuration
+    // variables for this instance.
     function locale (key) {
         var newLocaleData;
 
@@ -2499,6 +2517,8 @@
         };
     }
 
+    // FORMATTING
+
     addFormatToken(0, ['gg', 2], 0, function () {
         return this.weekYear() % 100;
     });
@@ -2588,6 +2608,8 @@
         return this;
     }
 
+    // FORMATTING
+
     addFormatToken('Q', 0, 'Qo', 'quarter');
 
     // ALIASES
@@ -2606,6 +2628,8 @@
     function getSetQuarter (input) {
         return input == null ? Math.ceil((this.month() + 1) / 3) : this.month((input - 1) * 3 + this.month() % 3);
     }
+
+    // FORMATTING
 
     addFormatToken('w', ['ww', 2], 'wo', 'week');
     addFormatToken('W', ['WW', 2], 'Wo', 'isoWeek');
@@ -2659,6 +2683,8 @@
         return input == null ? week : this.add((input - week) * 7, 'd');
     }
 
+    // FORMATTING
+
     addFormatToken('D', ['DD', 2], 'Do', 'date');
 
     // ALIASES
@@ -2681,6 +2707,8 @@
     // MOMENTS
 
     var getSetDayOfMonth = makeGetSet('Date', true);
+
+    // FORMATTING
 
     addFormatToken('d', 0, 'do', 'day');
 
@@ -3001,6 +3029,8 @@
         this._weekdaysMinStrictRegex = new RegExp('^(' + minPieces.join('|') + ')', 'i');
     }
 
+    // FORMATTING
+
     addFormatToken('DDD', ['DDDD', 3], 'DDDo', 'dayOfYear');
 
     // ALIASES
@@ -3023,6 +3053,8 @@
         var dayOfYear = Math.round((this.clone().startOf('day') - this.clone().startOf('year')) / 864e5) + 1;
         return input == null ? dayOfYear : this.add((input - dayOfYear), 'd');
     }
+
+    // FORMATTING
 
     function hFormat() {
         return this.hours() % 12 || 12;
@@ -3147,6 +3179,8 @@
     // this rule.
     var getSetHour = makeGetSet('Hours', true);
 
+    // FORMATTING
+
     addFormatToken('m', ['mm', 2], 0, 'minute');
 
     // ALIASES
@@ -3163,6 +3197,8 @@
 
     var getSetMinute = makeGetSet('Minutes', false);
 
+    // FORMATTING
+
     addFormatToken('s', ['ss', 2], 0, 'second');
 
     // ALIASES
@@ -3178,6 +3214,8 @@
     // MOMENTS
 
     var getSetSecond = makeGetSet('Seconds', false);
+
+    // FORMATTING
 
     addFormatToken('S', 0, 0, function () {
         return ~~(this.millisecond() / 100);
@@ -3233,6 +3271,8 @@
     // MOMENTS
 
     var getSetMillisecond = makeGetSet('Milliseconds', false);
+
+    // FORMATTING
 
     addFormatToken('z',  0, 0, 'zoneAbbr');
     addFormatToken('zz', 0, 0, 'zoneName');
@@ -3937,6 +3977,8 @@
     duration_prototype__proto.lang = lang;
 
     // Side effect imports
+
+    // FORMATTING
 
     addFormatToken('X', 0, 0, 'unix');
     addFormatToken('x', 0, 0, 'valueOf');
