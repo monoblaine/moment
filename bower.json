@@ -19,5 +19,6 @@
     "package.js",
     "package.json",
     "!build/umd/min/moment-with-locales.custom.js"
-  ]
+  ],
+  "version": "2.13.0-m1"
 }
