@@ -1,6 +1,6 @@
 {
   "name": "moment",
-  "version": "2.13.0-m3",
+  "version": "2.13.0-m4",
   "main": "moment.js",
   "description": "Parse, validate, manipulate, and display dates in JavaScript.",
   "files": [
