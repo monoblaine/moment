@@ -1,3 +1,9 @@
+//! moment.js
+//! version : 2.13.0
+//! authors : Tim Wood, Iskren Chernev, Moment.js contributors
+//! license : MIT
+//! momentjs.com
+
 ;(function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
@@ -18,6 +24,19 @@
 
     function isArray(input) {
         return input instanceof Array || Object.prototype.toString.call(input) === '[object Array]';
+    }
+
+    function isObject(input) {
+        return Object.prototype.toString.call(input) === '[object Object]';
+    }
+
+    function isObjectEmpty(obj) {
+        var k;
+        for (k in obj) {
+            // even if its not own property I'd still call it non-empty
+            return false;
+        }
+        return true;
     }
 
     function isDate(input) {
@@ -215,7 +234,8 @@
 
     function absFloor (number) {
         if (number < 0) {
-            return Math.ceil(number);
+            // -0 -> 0
+            return Math.ceil(number) || 0;
         } else {
             return Math.floor(number);
         }
@@ -286,10 +306,6 @@
 
     function isFunction(input) {
         return input instanceof Function || Object.prototype.toString.call(input) === '[object Function]';
-    }
-
-    function isObject(input) {
-        return Object.prototype.toString.call(input) === '[object Object]';
     }
 
     function locale_set__set (config) {
@@ -428,7 +444,8 @@
                 deprecateSimple('defineLocaleOverride',
                         'use moment.updateLocale(localeName, config) to change ' +
                         'an existing locale. moment.defineLocale(localeName, ' +
-                        'config) should only be used for creating a new locale');
+                        'config) should only be used for creating a new locale ' +
+                        'See http://momentjs.com/guides/#/warnings/define-locale/ for more info.');
                 config = mergeConfigs(locales[name]._config, config);
             } else if (config.parentLocale != null) {
                 if (locales[config.parentLocale] != null) {
@@ -436,7 +453,7 @@
                 } else {
                     // treat as if there is no base config
                     deprecateSimple('parentLocaleUndefined',
-                            'specified parentLocale is not defined yet');
+                            'specified parentLocale is not defined yet. See http://momentjs.com/guides/#/warnings/parent-locale/');
                 }
             }
             locales[name] = new Locale(config);
@@ -533,6 +550,23 @@
         return normalizedInput;
     }
 
+    var priorities = {};
+
+    function addUnitPriority(unit, priority) {
+        priorities[unit] = priority;
+    }
+
+    function getPrioritizedUnits(unitsObj) {
+        var units = [];
+        for (var u in unitsObj) {
+            units.push({unit: u, priority: priorities[u]});
+        }
+        units.sort(function (a, b) {
+            return a.priority - b.priority;
+        });
+        return units;
+    }
+
     function makeGetSet (unit, keepTime) {
         return function (value) {
             if (value != null) {
@@ -558,11 +592,21 @@
 
     // MOMENTS
 
-    function getSet (units, value) {
-        var unit;
+    function stringGet (units) {
+        units = normalizeUnits(units);
+        if (isFunction(this[units])) {
+            return this[units]();
+        }
+        return this;
+    }
+
+
+    function stringSet (units, value) {
         if (typeof units === 'object') {
-            for (unit in units) {
-                this.set(unit, units[unit]);
+            units = normalizeObjectUnits(units);
+            var prioritized = getPrioritizedUnits(units);
+            for (var i = 0; i < prioritized.length; i++) {
+                this[prioritized[i].unit](units[prioritized[i].unit]);
             }
         } else {
             units = normalizeUnits(units);
@@ -802,6 +846,10 @@
 
     addUnitAlias('month', 'M');
 
+    // PRIORITY
+
+    addUnitPriority('month', 8);
+
     // PARSING
 
     addRegexToken('M',    match1to2);
@@ -833,7 +881,7 @@
     var defaultLocaleMonths = 'January_February_March_April_May_June_July_August_September_October_November_December'.split('_');
     function localeMonths (m, format) {
         return isArray(this._months) ? this._months[m.month()] :
-            this._months[MONTHS_IN_FORMAT.test(format) ? 'format' : 'standalone'][m.month()];
+            this._months[(this._months.isFormat || MONTHS_IN_FORMAT).test(format) ? 'format' : 'standalone'][m.month()];
     }
 
     var defaultLocaleMonthsShort = 'Jan_Feb_Mar_Apr_May_Jun_Jul_Aug_Sep_Oct_Nov_Dec'.split('_');
@@ -1019,6 +1067,8 @@
         for (i = 0; i < 12; i++) {
             shortPieces[i] = regexEscape(shortPieces[i]);
             longPieces[i] = regexEscape(longPieces[i]);
+        }
+        for (i = 0; i < 24; i++) {
             mixedPieces[i] = regexEscape(mixedPieces[i]);
         }
 
@@ -1168,7 +1218,7 @@
         'moment construction falls back to js Date. This is ' +
         'discouraged and will be removed in upcoming major ' +
         'release. Please refer to ' +
-        'https://github.com/moment/moment/issues/1407 for more info.',
+        'http://momentjs.com/guides/#/warnings/js-date/ for more info.',
         function (config) {
             config._d = new Date(config._i + (config._useUTC ? ' UTC' : ''));
         }
@@ -1214,6 +1264,10 @@
     // ALIASES
 
     addUnitAlias('year', 'y');
+
+    // PRIORITIES
+
+    addUnitPriority('year', 1);
 
     // PARSING
 
@@ -1516,9 +1570,9 @@
         }
 
         // clear _12h flag if hour is <= 12
-        if (getParsingFlags(config).bigHour === true &&
-                config._a[HOUR] <= 12 &&
-                config._a[HOUR] > 0) {
+        if (config._a[HOUR] <= 12 &&
+            getParsingFlags(config).bigHour === true &&
+            config._a[HOUR] > 0) {
             getParsingFlags(config).bigHour = undefined;
         }
 
@@ -1644,11 +1698,11 @@
             return new Moment(checkOverflow(input));
         } else if (isArray(format)) {
             configFromStringAndArray(config);
-        } else if (format) {
-            configFromStringAndFormat(config);
         } else if (isDate(input)) {
             config._d = input;
-        } else {
+        } else if (format) {
+            configFromStringAndFormat(config);
+        }  else {
             configFromInput(config);
         }
 
@@ -1689,6 +1743,11 @@
             strict = locale;
             locale = undefined;
         }
+
+        if ((isObject(input) && isObjectEmpty(input)) ||
+                (isArray(input) && input.length === 0)) {
+            input = undefined;
+        }
         // object construction must be done this way.
         // https://github.com/moment/moment/issues/1423
         c._isAMomentObject = true;
@@ -1706,19 +1765,19 @@
     }
 
     var prototypeMin = deprecate(
-         'moment().min is deprecated, use moment.max instead. https://github.com/moment/moment/issues/1548',
-         function () {
-             var other = local__createLocal.apply(null, arguments);
-             if (this.isValid() && other.isValid()) {
-                 return other < this ? this : other;
-             } else {
-                 return valid__createInvalid();
-             }
-         }
-     );
+        'moment().min is deprecated, use moment.max instead. http://momentjs.com/guides/#/warnings/min-max/',
+        function () {
+            var other = local__createLocal.apply(null, arguments);
+            if (this.isValid() && other.isValid()) {
+                return other < this ? this : other;
+            } else {
+                return valid__createInvalid();
+            }
+        }
+    );
 
     var prototypeMax = deprecate(
-        'moment().max is deprecated, use moment.min instead. https://github.com/moment/moment/issues/1548',
+        'moment().max is deprecated, use moment.min instead. http://momentjs.com/guides/#/warnings/min-max/',
         function () {
             var other = local__createLocal.apply(null, arguments);
             if (this.isValid() && other.isValid()) {
@@ -2137,7 +2196,8 @@
             var dur, tmp;
             //invert the arguments, but complain about it
             if (period !== null && !isNaN(+period)) {
-                deprecateSimple(name, 'moment().' + name  + '(period, number) is deprecated. Please use moment().' + name + '(number, period).');
+                deprecateSimple(name, 'moment().' + name  + '(period, number) is deprecated. Please use moment().' + name + '(number, period). ' +
+                'See http://momentjs.com/guides/#/warnings/add-inverted-param/ for more info.');
                 tmp = val; val = period; period = tmp;
             }
 
@@ -2177,20 +2237,24 @@
     var add_subtract__add      = createAdder(1, 'add');
     var add_subtract__subtract = createAdder(-1, 'subtract');
 
-    function moment_calendar__calendar (time, formats) {
-        // We want to compare the start of today, vs this.
-        // Getting start-of-today depends on whether we're local/utc/offset or not.
-        var now = time || local__createLocal(),
-            sod = cloneWithOffset(now, this).startOf('day'),
-            diff = this.diff(sod, 'days', true),
-            format = diff < -6 ? 'sameElse' :
+    function getCalendarFormat(myMoment, now) {
+        var diff = myMoment.diff(now, 'days', true);
+        return diff < -6 ? 'sameElse' :
                 diff < -1 ? 'lastWeek' :
                 diff < 0 ? 'lastDay' :
                 diff < 1 ? 'sameDay' :
                 diff < 2 ? 'nextDay' :
                 diff < 7 ? 'nextWeek' : 'sameElse';
+    }
 
-        var output = formats && (isFunction(formats[format]) ? formats[format]() : formats[format]);
+    function moment_calendar__calendar (time, formats) {
+        // We want to compare the start of today, vs this.
+        // Getting start-of-today depends on whether we're local/utc/offset or not.
+        var now = time || local__createLocal(),
+            sod = cloneWithOffset(now, this).startOf('day'),
+            format = utils_hooks__hooks.calendarFormat(this, sod) || 'sameElse';
+
+        var output = formats && (isFunction(formats[format]) ? formats[format].call(this, now) : formats[format]);
 
         return this.format(output || this.localeData().calendar(format, this, local__createLocal(now)));
     }
@@ -2407,27 +2471,27 @@
         // the following switch intentionally omits break keywords
         // to utilize falling through the cases.
         switch (units) {
-        case 'year':
-            this.month(0);
-            /* falls through */
-        case 'quarter':
-        case 'month':
-            this.date(1);
-            /* falls through */
-        case 'week':
-        case 'isoWeek':
-        case 'day':
-        case 'date':
-            this.hours(0);
-            /* falls through */
-        case 'hour':
-            this.minutes(0);
-            /* falls through */
-        case 'minute':
-            this.seconds(0);
-            /* falls through */
-        case 'second':
-            this.milliseconds(0);
+            case 'year':
+                this.month(0);
+                /* falls through */
+            case 'quarter':
+            case 'month':
+                this.date(1);
+                /* falls through */
+            case 'week':
+            case 'isoWeek':
+            case 'day':
+            case 'date':
+                this.hours(0);
+                /* falls through */
+            case 'hour':
+                this.minutes(0);
+                /* falls through */
+            case 'minute':
+                this.seconds(0);
+                /* falls through */
+            case 'second':
+                this.milliseconds(0);
         }
 
         // weeks are a special case
@@ -2469,7 +2533,7 @@
     }
 
     function toDate () {
-        return this._offset ? new Date(this.valueOf()) : this._d;
+        return new Date(this.valueOf());
     }
 
     function toArray () {
@@ -2540,6 +2604,12 @@
 
     addUnitAlias('weekYear', 'gg');
     addUnitAlias('isoWeekYear', 'GG');
+
+    // PRIORITY
+
+    addUnitPriority('weekYear', 1);
+    addUnitPriority('isoWeekYear', 1);
+
 
     // PARSING
 
@@ -2616,6 +2686,10 @@
 
     addUnitAlias('quarter', 'Q');
 
+    // PRIORITY
+
+    addUnitPriority('quarter', 7);
+
     // PARSING
 
     addRegexToken('Q', match1);
@@ -2638,6 +2712,11 @@
 
     addUnitAlias('week', 'w');
     addUnitAlias('isoWeek', 'W');
+
+    // PRIORITIES
+
+    addUnitPriority('week', 5);
+    addUnitPriority('isoWeek', 5);
 
     // PARSING
 
@@ -2691,6 +2770,9 @@
 
     addUnitAlias('date', 'D');
 
+    // PRIOROITY
+    addUnitPriority('date', 9);
+
     // PARSING
 
     addRegexToken('D',  match1to2);
@@ -2732,6 +2814,11 @@
     addUnitAlias('day', 'd');
     addUnitAlias('weekday', 'e');
     addUnitAlias('isoWeekday', 'E');
+
+    // PRIORITY
+    addUnitPriority('day', 11);
+    addUnitPriority('weekday', 11);
+    addUnitPriority('isoWeekday', 11);
 
     // PARSING
 
@@ -2779,6 +2866,13 @@
         }
 
         return null;
+    }
+
+    function parseIsoWeekday(input, locale) {
+        if (typeof input === 'string') {
+            return locale.weekdaysParse(input) % 7 || 7;
+        }
+        return isNaN(input) ? null : input;
     }
 
     // LOCALES
@@ -2930,10 +3024,17 @@
         if (!this.isValid()) {
             return input != null ? this : NaN;
         }
+
         // behaves the same as moment#day except
         // as a getter, returns 7 instead of 0 (1-7 range instead of 0-6)
         // as a setter, sunday should belong to the previous week.
-        return input == null ? this.day() || 7 : this.day(this.day() % 7 ? input : input - 7);
+
+        if (input != null) {
+            var weekday = parseIsoWeekday(input, this.localeData());
+            return this.day(this.day() % 7 ? weekday : weekday - 7);
+        } else {
+            return this.day() || 7;
+        }
     }
 
     var defaultWeekdaysRegex = matchWord;
@@ -3037,6 +3138,9 @@
 
     addUnitAlias('dayOfYear', 'DDD');
 
+    // PRIORITY
+    addUnitPriority('dayOfYear', 4);
+
     // PARSING
 
     addRegexToken('DDD',  match1to3);
@@ -3098,6 +3202,9 @@
     // ALIASES
 
     addUnitAlias('hour', 'h');
+
+    // PRIORITY
+    addUnitPriority('hour', 13);
 
     // PARSING
 
@@ -3187,6 +3294,10 @@
 
     addUnitAlias('minute', 'm');
 
+    // PRIORITY
+
+    addUnitPriority('minute', 14);
+
     // PARSING
 
     addRegexToken('m',  match1to2);
@@ -3204,6 +3315,10 @@
     // ALIASES
 
     addUnitAlias('second', 's');
+
+    // PRIORITY
+
+    addUnitPriority('second', 15);
 
     // PARSING
 
@@ -3250,6 +3365,10 @@
 
     addUnitAlias('millisecond', 'ms');
 
+    // PRIORITY
+
+    addUnitPriority('millisecond', 16);
+
     // PARSING
 
     addRegexToken('S',    match1to3, match1);
@@ -3291,6 +3410,7 @@
 
     momentPrototype__proto.add               = add_subtract__add;
     momentPrototype__proto.calendar          = moment_calendar__calendar;
+    momentPrototype__proto.calendarFormat    = getCalendarFormat;
     momentPrototype__proto.clone             = clone;
     momentPrototype__proto.diff              = diff;
     momentPrototype__proto.endOf             = endOf;
@@ -3299,7 +3419,7 @@
     momentPrototype__proto.fromNow           = fromNow;
     momentPrototype__proto.to                = to;
     momentPrototype__proto.toNow             = toNow;
-    momentPrototype__proto.get               = getSet;
+    momentPrototype__proto.get               = stringGet;
     momentPrototype__proto.invalidAt         = invalidAt;
     momentPrototype__proto.isAfter           = isAfter;
     momentPrototype__proto.isBefore          = isBefore;
@@ -3314,7 +3434,7 @@
     momentPrototype__proto.max               = prototypeMax;
     momentPrototype__proto.min               = prototypeMin;
     momentPrototype__proto.parsingFlags      = parsingFlags;
-    momentPrototype__proto.set               = getSet;
+    momentPrototype__proto.set               = stringSet;
     momentPrototype__proto.startOf           = startOf;
     momentPrototype__proto.subtract          = add_subtract__subtract;
     momentPrototype__proto.toArray           = toArray;
@@ -3374,7 +3494,6 @@
     momentPrototype__proto.parseZone            = setOffsetToParsedOffset;
     momentPrototype__proto.hasAlignedHourOffset = hasAlignedHourOffset;
     momentPrototype__proto.isDST                = isDaylightSavingTime;
-    momentPrototype__proto.isDSTShifted         = isDaylightSavingTimeShifted;
     momentPrototype__proto.isLocal              = isLocal;
     momentPrototype__proto.isUtcOffset          = isUtcOffset;
     momentPrototype__proto.isUtc                = isUtc;
@@ -3388,7 +3507,8 @@
     momentPrototype__proto.dates  = deprecate('dates accessor is deprecated. Use date instead.', getSetDayOfMonth);
     momentPrototype__proto.months = deprecate('months accessor is deprecated. Use month instead', getSetMonth);
     momentPrototype__proto.years  = deprecate('years accessor is deprecated. Use year instead', getSetYear);
-    momentPrototype__proto.zone   = deprecate('moment().zone is deprecated, use moment().utcOffset instead. https://github.com/moment/moment/issues/1779', getSetZone);
+    momentPrototype__proto.zone   = deprecate('moment().zone is deprecated, use moment().utcOffset instead. http://momentjs.com/guides/#/warnings/zone/', getSetZone);
+    momentPrototype__proto.isDSTShifted = deprecate('isDSTShifted is deprecated. See http://momentjs.com/guides/#/warnings/dst-shifted/ for more information', isDaylightSavingTimeShifted);
 
     var momentPrototype = momentPrototype__proto;
 
@@ -3410,7 +3530,7 @@
     };
 
     function locale_calendar__calendar (key, mom, now) {
-        var output = this._calendar[key];
+        var output = this._calendar[key] || this._calendar['sameElse'];
         return isFunction(output) ? output.call(mom, now) : output;
     }
 
@@ -3865,6 +3985,18 @@
         return substituteTimeAgo.apply(null, a);
     }
 
+    // This function allows you to set the rounding function for relative time strings
+    function duration_humanize__getSetRelativeTimeRounding (roundingFunction) {
+        if (roundingFunction === undefined) {
+            return round;
+        }
+        if (typeof(roundingFunction) === 'function') {
+            round = roundingFunction;
+            return true;
+        }
+        return false;
+    }
+
     // This function allows you to set a threshold for relative time strings
     function duration_humanize__getSetRelativeTimeThreshold (threshold, limit) {
         if (thresholds[threshold] === undefined) {
@@ -3998,11 +4130,6 @@
 
     ;
 
-    //! moment.js
-    //! version : 2.13.0
-    //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
-    //! license : MIT
-    //! momentjs.com
 
     utils_hooks__hooks.version = '2.13.0';
 
@@ -4031,15 +4158,13 @@
     utils_hooks__hooks.locales               = locale_locales__listLocales;
     utils_hooks__hooks.weekdaysShort         = lists__listWeekdaysShort;
     utils_hooks__hooks.normalizeUnits        = normalizeUnits;
+    utils_hooks__hooks.relativeTimeRounding = duration_humanize__getSetRelativeTimeRounding;
     utils_hooks__hooks.relativeTimeThreshold = duration_humanize__getSetRelativeTimeThreshold;
+    utils_hooks__hooks.calendarFormat        = getCalendarFormat;
     utils_hooks__hooks.prototype             = momentPrototype;
 
     var moment__default = utils_hooks__hooks;
 
-    //! moment.js locale configuration
-    //! locale : turkish (tr)
-    //! authors : Erhan Gundogan : https://github.com/erhangundogan,
-    //!           Burak Yiğit Kaya: https://github.com/BYK
 
     var suffixes = {
         1: '\'inci',
