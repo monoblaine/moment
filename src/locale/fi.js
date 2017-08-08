@@ -1,5 +1,5 @@
 //! moment.js locale configuration
-//! locale : finnish (fi)
+//! locale : Finnish [fi]
 //! author : Tarmo Aidantausta : https://github.com/bleadof
 
 import moment from '../moment';
@@ -88,7 +88,7 @@ export default moment.defineLocale('fi', {
         y : translate,
         yy : translate
     },
-    ordinalParse: /\d{1,2}\./,
+    dayOfMonthOrdinalParse: /\d{1,2}\./,
     ordinal : '%d.',
     week : {
         dow : 1, // Monday is the first day of the week.

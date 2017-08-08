@@ -1,5 +1,6 @@
 {
   "name": "moment",
+  "license": "MIT",
   "main": "moment.js",
   "ignore": [
     "**/.*",
@@ -18,6 +19,9 @@
     "Moment.js.nuspec",
     "package.js",
     "package.json",
+    "ISSUE_TEMPLATE.md",
+    "typing-tests",
+    "min/tests.js",
     "!build/umd/min/moment-with-locales.custom.js"
   ],
   "version": "2.13.0-m5"

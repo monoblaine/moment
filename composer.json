@@ -12,13 +12,8 @@
         "l10n",
         "ender"
     ],
-    "homepage": "http://github.com/moment/moment/",
-    "authors": [
-        {
-            "name": "Tim Wood",
-            "email": "washwithcare@gmail.com"
-        }
-    ],
+    "homepage": "https://github.com/moment/moment",
+    "authors": [{"name": "Tim Wood", "email": "washwithcare@gmail.com"}],
     "license": "MIT",
     "type": "component",
     "require": {

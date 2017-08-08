@@ -1,5 +1,5 @@
 //! moment.js locale configuration
-//! locale : czech (cs)
+//! locale : Czech [cs]
 //! author : petrbela : https://github.com/petrbela
 
 import moment from '../moment';
@@ -153,7 +153,7 @@ export default moment.defineLocale('cs', {
         y : translate,
         yy : translate
     },
-    ordinalParse : /\d{1,2}\./,
+    dayOfMonthOrdinalParse : /\d{1,2}\./,
     ordinal : '%d.',
     week : {
         dow : 1, // Monday is the first day of the week.

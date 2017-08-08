@@ -1,5 +1,5 @@
 //! moment.js locale configuration
-//! locale : Klingon (tlh)
+//! locale : Klingon [tlh]
 //! author : Dominika Kruk : https://github.com/amaranthrose
 
 import moment from '../moment';
@@ -101,7 +101,7 @@ export default moment.defineLocale('tlh', {
         y : 'wa’ DIS',
         yy : translate
     },
-    ordinalParse: /\d{1,2}\./,
+    dayOfMonthOrdinalParse: /\d{1,2}\./,
     ordinal : '%d.',
     week : {
         dow : 1, // Monday is the first day of the week.
